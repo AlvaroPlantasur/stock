@@ -24,10 +24,11 @@ def main():
         'port': db_port
     }
     
-    # 2. Generar el nombre del fichero con fecha y hora (timestamp)
+    # 2. Generar el nombre del fichero con la fecha y la hora locales  
+    # Se utiliza datetime.now(), que obtiene la hora local del dispositivo.
     now = datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
-    # Si no se ha definido la variable de entorno EXCEL_FILE_PATH, se genera con el timestamp
+    # Si no se establece EXCEL_FILE_PATH en las variables de entorno, se genera uno nuevo con timestamp.
     file_path = os.environ.get('EXCEL_FILE_PATH', f'Productos_{timestamp}.xlsx')
     
     # 3. Consulta SQL para extraer la información de productos
@@ -159,6 +160,7 @@ def main():
         print(f"No se encontró el archivo '{file_path}'. Se creará uno nuevo.")
         book = Workbook()
         sheet = book.active
+        # Agregar la fila de encabezados a partir de la consulta
         sheet.append(headers)
     
     # 6. Evitar duplicados usando la columna "Referencia" (sexta columna, índice 5)
@@ -167,7 +169,7 @@ def main():
         if row[5] not in existing_refs:
             sheet.append(row)
             new_row_index = sheet.max_row
-            # Copiar formato de la fila anterior para mantener consistencia (si existe una fila previa)
+            # Copia el formato de la fila anterior para mantener consistencia (si existe)
             if new_row_index > 1:
                 for col in range(1, sheet.max_column + 1):
                     source_cell = sheet.cell(row=new_row_index - 1, column=col)
@@ -178,7 +180,7 @@ def main():
                     target_cell.alignment = copy.copy(source_cell.alignment)
     
     # 7. Actualizar la referencia de la tabla si existe en el libro
-    # Se asume que la tabla se llama "Productos"
+    # Se asume que la tabla se llama "Productos". Si no existe, se ignora.
     if "Productos" in sheet.tables:
         tabla = sheet.tables["Productos"]
         max_row = sheet.max_row
@@ -190,12 +192,11 @@ def main():
     else:
         print("No se encontró la tabla 'Productos'. Se conservará el formato actual, pero no se actualizará la referencia de la tabla.")
     
-    # 8. Guardar el archivo Excel con el nombre basado en la fecha y hora
+    # 8. Guardar el archivo Excel con el nombre que incluye la fecha y la hora locales
     book.save(file_path)
     print(f"Archivo guardado en '{file_path}'.")
     
-    # 9. Si se ejecuta en GitHub Actions, se establece la salida para usar el nombre del archivo en el flujo (OneDrive)
-    # GitHub Actions utiliza la variable de entorno GITHUB_OUTPUT para establecer outputs
+    # 9. Si se ejecuta en GitHub Actions, se establece la salida para usar el nombre del archivo en el flujo (por ejemplo, para OneDrive)
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as gh_out:
