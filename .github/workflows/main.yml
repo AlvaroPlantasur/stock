@@ -6,7 +6,7 @@ name: Ejecutar script y actualizar archivo en OneDrive
 on:
   schedule:
     - cron: '0 */6 * * *'
-   # Se ejecuta cada hora (UTC)
+    # Se ejecuta cada 6 horas (UTC)
   workflow_dispatch:
 
 jobs:
@@ -34,25 +34,15 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Ejecutar script de actualización del Excel
+        id: update_excel
         run: python main.py
 
       - name: List files in directory (post-run)
         run: ls -la
 
-      # Realizar commit y push del archivo actualizado al repositorio
-      - name: Commit updated Excel file
+      - name: Enviar archivo actualizado a OneDrive
         run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-          git add "${{ env.EXCEL_FILE_PATH }}"
-          git commit -m "Actualizar archivo Excel con nuevos datos" || echo "No hay cambios que commitear"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Enviar el archivo actualizado directamente a Power Automate
-      - name: Enviar archivo actualizado a Power Automate
-        run: |
+          echo "Enviando archivo: ${{ steps.update_excel.outputs.file_path }}"
           curl -X POST "https://prod-233.westeurope.logic.azure.com:443/workflows/a974d6fb1b994402a09de17b4a888ad4/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=uPpft8qBCQch3TBQhnY6TtqKdRiaBXLVC7RJ0nZUODg" \
-            -H "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" \
-            --data-binary "@${{ env.EXCEL_FILE_PATH }}"
+          -H "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" \
+          --data-binary "@${{ steps.update_excel.outputs.file_path }}"
