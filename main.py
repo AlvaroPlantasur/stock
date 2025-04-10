@@ -201,6 +201,7 @@ def main():
     if github_output:
         with open(github_output, "a") as gh_out:
             print(f"file_path={file_path}", file=gh_out)
+
     
 if __name__ == '__main__':
     main()
